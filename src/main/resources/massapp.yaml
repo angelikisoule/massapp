@@ -1,0 +1,46 @@
+server:
+  servlet:
+    context-path: /massapp
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info,env,loggers,prometheus
+spring:
+  hazelcast:
+    config: classpath:/hazelcast.xml
+  datasource:
+    url: jdbc:postgresql://localhost:5432/massapp
+    username: massapp
+    password: massapp
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    properties:
+      hibernate:
+        generate_statistics: true
+        default_schema: public
+        format_sql: true
+  flyway:
+    enabled: true
+    table: DB_MIGRATION_HISTORY
+    schemas: massapp
+    outOfOrder: true
+    sql-migration-suffixes: .Final.sql
+  metrics:
+    web:
+      server:
+        auto-time-requests: true
+      client:
+        auto-time-requests: true
+application:
+logging:
+  level:
+    com.upstreamsystems.plan: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+

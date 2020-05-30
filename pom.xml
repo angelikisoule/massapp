@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.2.5.RELEASE</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>io.soulee.massapp</groupId>
+	<artifactId>massapp</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>massapp</name>
+	<description>Demo project for Massage</description>
+
+	<properties>
+		<java.version>1.8</java.version>
+   		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<db.host>localhost</db.host>
+		<db.port>5432</db.port>
+		<db.module.url>jdbc:postgresql://${db.host}:${db.port}/${db.module.database.name}</db.module.url>
+		<db.module.database.name>massapp</db.module.database.name>
+		<db.module.userId>massapp</db.module.userId>
+		<db.root.url>jdbc:postgresql://${db.host}:${db.port}/postgres</db.root.url>
+		<db.root.userId>postgres</db.root.userId>
+		<init.database.skip>true</init.database.skip>
+		<db.create_db_extra />
+		<jgitflow-maven-plugin.version>1.0-m4.3</jgitflow-maven-plugin.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>20.0</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+		</dependency>
+		
+		<!-- Swagger ui / swagger-ui.html -->
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-swagger2</artifactId>
+			<version>2.9.2</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-swagger-ui</artifactId>
+			<version>2.9.2</version>
+			<scope>compile</scope>
+		</dependency>	
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.junit.vintage</groupId>
+					<artifactId>junit-vintage-engine</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+	</dependencies>
+
+	<build>
+	   		<finalName>${project.artifactId}-${project.version}</finalName>
+   		<!--Add web resources and resources in JAR file and filter version info -->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			
+			<!-- creates database user and schema, no schema objects (tables, etc) -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>sql-maven-plugin</artifactId>
+				<version>1.5</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>42.2.8</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<driver>org.postgresql.Driver</driver>
+					<url>${db.root.url}</url>
+					<username>${db.root.userId}</username>
+					<password>${db.root.password}</password>
+					<enableFiltering>true</enableFiltering>
+					<autocommit>true</autocommit>
+					<orderFile>ascending</orderFile>
+				</configuration>
+				<executions>
+					<execution>
+						<id>init-db</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>execute</goal>
+						</goals>
+					
+						<configuration>
+							<sqlCommand>
+								DROP DATABASE IF EXISTS ${db.module.database.name};
+								DROP USER IF EXISTS ${db.module.userId};
+								CREATE USER ${db.module.userId} LOGIN PASSWORD '${db.module.password}' NOCREATEDB NOCREATEROLE NOREPLICATION VALID UNTIL 'infinity';
+								CREATE DATABASE ${db.module.database.name} WITH ENCODING='UTF8' ${db.create_db_extra} OWNER=${db.module.userId} CONNECTION LIMIT=-1;
+							</sqlCommand>
+							<skip>${init.database.skip}</skip>
+						</configuration>
+						<inherited>false</inherited>
+					</execution>
+					<!-- need to connect as root user to the newly created database and create objects -->
+					<execution>
+						<id>configure-db</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>execute</goal>
+						</goals>
+						<configuration>
+							<url>${db.module.url}</url>
+							<sqlCommand>
+								CREATE EXTENSION hstore;
+							</sqlCommand>
+							<skip>${init.database.skip}</skip>
+						</configuration>
+						<inherited>false</inherited>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- executes the sql scripts that create the database objects -->
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>6.0.8</version>
+				<configuration>
+					<driver>org.postgresql.Driver</driver>
+					<url>${db.module.url}</url>
+					<user>${db.module.userId}</user>
+					<password>${db.module.password}</password>
+					<sqlMigrationSuffixes>
+						<sqlMigrationSuffix>.Final.sql</sqlMigrationSuffix>
+					</sqlMigrationSuffixes>
+					<encoding>UTF-8</encoding>
+					<table>DB_MIGRATION_HISTORY</table>
+					<outOfOrder>true</outOfOrder>
+					<schemas>
+						<schema>massapp</schema>
+					</schemas>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>42.2.8</version>
+					</dependency>
+					<dependency>
+						<groupId>com.fasterxml.jackson.core</groupId>
+						<artifactId>jackson-core</artifactId>
+						<version>2.8.10</version>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.logging.log4j</groupId>
+						<artifactId>log4j-core</artifactId>
+						<version>2.8.1</version>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.logging.log4j</groupId>
+						<artifactId>log4j-api</artifactId>
+						<version>2.8.1</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>external.atlassian.jgitflow</groupId>
+				<artifactId>jgitflow-maven-plugin</artifactId>
+				<version>${jgitflow-maven-plugin.version}</version>
+				<configuration>
+					<flowInitContext>
+						<masterBranchName>master</masterBranchName>
+						<developBranchName>develop</developBranchName>
+						<featureBranchPrefix>feature-</featureBranchPrefix>
+						<releaseBranchPrefix>rc-</releaseBranchPrefix>
+						<hotfixBranchPrefix>hotfix-</hotfixBranchPrefix>
+						<versionTagPrefix>version-</versionTagPrefix>
+					</flowInitContext>
+					<autoVersionSubmodules>true</autoVersionSubmodules>
+					<noReleaseBuild>true</noReleaseBuild>
+					<noFeatureBuild>true</noFeatureBuild>
+					<noHotfixBuild>true</noHotfixBuild>
+					<noDeploy>true</noDeploy>
+				</configuration>
+			</plugin>
+			<!-- exposes git properties - replaced in generated version file -->
+<!--  			<plugin> -->
+<!--  				<groupId>pl.project13.maven</groupId> -->
+<!--  				<artifactId>git-commit-id-plugin</artifactId> -->
+<!--  				<configuration> -->
+<!--  					<generateGitPropertiesFile>false</generateGitPropertiesFile> -->
+<!--  				</configuration> -->
+<!--  			</plugin> -->
+	
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
